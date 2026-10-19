@@ -1,0 +1,23 @@
+
+@Task_Management_API_HostAddress = http://localhost:5168
+
+### Get all tasks
+GET {{Task_Management_API_HostAddress}}/api/tasks
+Accept: application/json
+
+### Get a task by ID
+GET {{Task_Management_API_HostAddress}}/api/tasks/1
+Accept: application/json
+
+### Create a task
+POST {{Task_Management_API_HostAddress}}/api/tasks
+Content-Type: application/json
+
+{
+  "title": "Learn ASP.NET Core",
+  "description": "Practice building REST APIs",
+  "isCompleted": false
+}
+
+### Delete a task
+DELETE {{Task_Management_API_HostAddress}}/api/tasks/1
