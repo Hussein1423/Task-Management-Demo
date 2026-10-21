@@ -47,6 +47,21 @@ namespace Task_Management_API.Controllers
             );
         }
 
+        [HttpPut("{id}")]
+        public async Task<IActionResult> Update(int id, TaskItem task)
+        {
+            var updated = await _taskService.Update(
+                id,
+                task,
+                HttpContext.RequestAborted
+            );
+
+            if (!updated)
+                return NotFound();
+
+            return NoContent();
+        }
+
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {
