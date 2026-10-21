@@ -4,6 +4,14 @@ using Task_Management_API.Entities;
 using Task_Management_API.Messaging;
 using Task_Management_API.Middlewares;
 using Task_Management_API.Services;
+using DotNetEnv;
+
+if (Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER") != "true")
+{
+    Env.Load();
+}
+
+
 
 var builder = WebApplication.CreateBuilder(args);
 
