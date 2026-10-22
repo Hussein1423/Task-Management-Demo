@@ -49,6 +49,12 @@ namespace Task_Management_API_Tests
             Assert.Equal(expectedTask.Title, actualTask.Title);
             Assert.Equal(expectedTask.IsCompleted, actualTask.IsCompleted);
             Assert.Equal(expectedTask.Description, actualTask.Description);
+
+            mockTaskService.Verify(
+    service => service.GetById(
+        1,
+        It.IsAny<CancellationToken>()),
+    Times.Once);
         }
 
 
@@ -77,6 +83,11 @@ namespace Task_Management_API_Tests
 
             // Assert
             Assert.IsType<NotFoundResult>(result);
+            mockTaskService.Verify(
+    service => service.GetById(
+        999,
+        It.IsAny<CancellationToken>()),
+    Times.Once);
         }
 
         [Fact]
@@ -126,6 +137,11 @@ namespace Task_Management_API_Tests
             Assert.Equal(2, actualTasks.Count);
             Assert.Equal(expectedTasks[0].Title, actualTasks[0].Title);
             Assert.Equal(expectedTasks[1].Title, actualTasks[1].Title);
+
+            mockTaskService.Verify(
+    service => service.GetAll(
+        It.IsAny<CancellationToken>()),
+    Times.Once);
         }
 
 
@@ -156,6 +172,10 @@ namespace Task_Management_API_Tests
             var actualTasks = Assert.IsType<List<TaskItem>>(okResult.Value);
 
             Assert.Empty(actualTasks);
+            mockTaskService.Verify(
+    service => service.GetAll(
+        It.IsAny<CancellationToken>()),
+    Times.Once);
         }
 
         [Fact]
@@ -207,6 +227,8 @@ namespace Task_Management_API_Tests
             var actualTask = Assert.IsType<TaskItem>(createdResult.Value);
             Assert.Equal(10, actualTask.Id);
             Assert.Equal(inputTask.Title, actualTask.Title);
+            Assert.Equal(inputTask.IsCompleted, actualTask.IsCompleted);
+            Assert.Equal(inputTask.Description, actualTask.Description);
 
             mockTaskService.Verify(
                 service => service.Create(
@@ -292,6 +314,13 @@ namespace Task_Management_API_Tests
 
             // Assert
             Assert.IsType<NotFoundResult>(result);
+            mockTaskService.Verify(
+    service => service.Update(
+        999,
+        task,
+        It.IsAny<CancellationToken>()),
+    Times.Once);
+
         }
         [Fact]
         public async Task Delete_WhenTaskExists_ReturnsNoContent()
@@ -351,6 +380,11 @@ namespace Task_Management_API_Tests
 
             // Assert
             Assert.IsType<NotFoundResult>(result);
+            mockTaskService.Verify(
+    service => service.Delete(
+        999,
+        It.IsAny<CancellationToken>()),
+    Times.Once);
         }
 
     }
