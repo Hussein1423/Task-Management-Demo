@@ -79,5 +79,84 @@ namespace Task_Management_API_Tests
             Assert.IsType<NotFoundResult>(result);
         }
 
+        [Fact]
+        public async Task GetAll_WhenTasksExist_ReturnsOkWithTasks()
+        {
+            // Arrange
+            var expectedTasks = new List<TaskItem>
+    {
+        new TaskItem
+        {
+            Id = 1,
+            Title = "Learn unit testing",
+            IsCompleted = false,
+            Description = "Practice xUnit and Moq"
+        },
+        new TaskItem
+        {
+            Id = 2,
+            Title = "Learn Docker",
+            IsCompleted = true,
+            Description = "Practice Docker Compose"
+        }
+    };
+
+            var mockTaskService = new Mock<ITaskService>();
+
+            mockTaskService
+                .Setup(service => service.GetAll(
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync(expectedTasks);
+
+            var controller = new TasksController(mockTaskService.Object)
+            {
+                ControllerContext = new ControllerContext
+                {
+                    HttpContext = new DefaultHttpContext()
+                }
+            };
+
+            // Act
+            var result = await controller.GetAll();
+
+            // Assert
+            var okResult = Assert.IsType<OkObjectResult>(result);
+            var actualTasks = Assert.IsType<List<TaskItem>>(okResult.Value);
+
+            Assert.Equal(2, actualTasks.Count);
+            Assert.Equal(expectedTasks[0].Title, actualTasks[0].Title);
+            Assert.Equal(expectedTasks[1].Title, actualTasks[1].Title);
+        }
+
+
+        [Fact]
+        public async Task GetAll_WhenNoTasksExist_ReturnsOkWithEmptyList()
+        {
+            // Arrange
+            var mockTaskService = new Mock<ITaskService>();
+
+            mockTaskService
+                .Setup(service => service.GetAll(
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync(new List<TaskItem>());
+
+            var controller = new TasksController(mockTaskService.Object)
+            {
+                ControllerContext = new ControllerContext
+                {
+                    HttpContext = new DefaultHttpContext()
+                }
+            };
+
+            // Act
+            var result = await controller.GetAll();
+
+            // Assert
+            var okResult = Assert.IsType<OkObjectResult>(result);
+            var actualTasks = Assert.IsType<List<TaskItem>>(okResult.Value);
+
+            Assert.Empty(actualTasks);
+        }
+
     }
 }
