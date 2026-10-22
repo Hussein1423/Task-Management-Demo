@@ -158,5 +158,62 @@ namespace Task_Management_API_Tests
             Assert.Empty(actualTasks);
         }
 
+        [Fact]
+        public async Task Create_WhenTaskIsCreated_ReturnsCreatedAtAction()
+        {
+            // Arrange
+            var inputTask = new TaskItem
+            {
+                Title = "Learn unit testing",
+                IsCompleted = false,
+                Description = "Practice xUnit and Moq"
+            };
+
+            var createdTask = new TaskItem
+            {
+                Id = 10,
+                Title = inputTask.Title,
+                IsCompleted = inputTask.IsCompleted,
+                Description = inputTask.Description
+            };
+
+            var mockTaskService = new Mock<ITaskService>();
+
+            mockTaskService
+                .Setup(service => service.Create(
+                    inputTask,
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync(createdTask);
+
+            var controller = new TasksController(mockTaskService.Object)
+            {
+                ControllerContext = new ControllerContext
+                {
+                    HttpContext = new DefaultHttpContext()
+                }
+            };
+
+            // Act
+            var result = await controller.Create(inputTask);
+
+            // Assert
+            var createdResult = Assert.IsType<CreatedAtActionResult>(result);
+
+            Assert.Equal(nameof(TasksController.GetById), createdResult.ActionName);
+
+            Assert.NotNull(createdResult.RouteValues);
+            Assert.Equal(10, createdResult.RouteValues["id"]);
+
+            var actualTask = Assert.IsType<TaskItem>(createdResult.Value);
+            Assert.Equal(10, actualTask.Id);
+            Assert.Equal(inputTask.Title, actualTask.Title);
+
+            mockTaskService.Verify(
+                service => service.Create(
+                    inputTask,
+                    It.IsAny<CancellationToken>()),
+                Times.Once);
+        }
+
     }
 }
