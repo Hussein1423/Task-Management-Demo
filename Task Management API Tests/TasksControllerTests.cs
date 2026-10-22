@@ -215,5 +215,84 @@ namespace Task_Management_API_Tests
                 Times.Once);
         }
 
+        [Fact]
+        public async Task Update_WhenTaskExists_ReturnsNoContent()
+        {
+            // Arrange
+            var task = new TaskItem
+            {
+                Id = 1,
+                Title = "Updated task",
+                IsCompleted = true,
+                Description = "Updated description"
+            };
+
+            var mockTaskService = new Mock<ITaskService>();
+
+            mockTaskService
+                .Setup(service => service.Update(
+                    1,
+                    task,
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync(true);
+
+            var controller = new TasksController(mockTaskService.Object)
+            {
+                ControllerContext = new ControllerContext
+                {
+                    HttpContext = new DefaultHttpContext()
+                }
+            };
+
+            // Act
+            var result = await controller.Update(1, task);
+
+            // Assert
+            Assert.IsType<NoContentResult>(result);
+
+            mockTaskService.Verify(
+                service => service.Update(
+                    1,
+                    task,
+                    It.IsAny<CancellationToken>()),
+                Times.Once);
+        }
+
+        [Fact]
+        public async Task Update_WhenTaskDoesNotExist_ReturnsNotFound()
+        {
+            // Arrange
+            var task = new TaskItem
+            {
+                Id = 999,
+                Title = "Updated task",
+                IsCompleted = true,
+                Description = "Updated description"
+            };
+
+            var mockTaskService = new Mock<ITaskService>();
+
+            mockTaskService
+                .Setup(service => service.Update(
+                    999,
+                    task,
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync(false);
+
+            var controller = new TasksController(mockTaskService.Object)
+            {
+                ControllerContext = new ControllerContext
+                {
+                    HttpContext = new DefaultHttpContext()
+                }
+            };
+
+            // Act
+            var result = await controller.Update(999, task);
+
+            // Assert
+            Assert.IsType<NotFoundResult>(result);
+        }
+
     }
 }
