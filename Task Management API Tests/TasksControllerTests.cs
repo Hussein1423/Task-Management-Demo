@@ -293,6 +293,65 @@ namespace Task_Management_API_Tests
             // Assert
             Assert.IsType<NotFoundResult>(result);
         }
+        [Fact]
+        public async Task Delete_WhenTaskExists_ReturnsNoContent()
+        {
+            // Arrange
+            var mockTaskService = new Mock<ITaskService>();
+
+            mockTaskService
+                .Setup(service => service.Delete(
+                    1,
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync(true);
+
+            var controller = new TasksController(mockTaskService.Object)
+            {
+                ControllerContext = new ControllerContext
+                {
+                    HttpContext = new DefaultHttpContext()
+                }
+            };
+
+            // Act
+            var result = await controller.Delete(1);
+
+            // Assert
+            Assert.IsType<NoContentResult>(result);
+
+            mockTaskService.Verify(
+                service => service.Delete(
+                    1,
+                    It.IsAny<CancellationToken>()),
+                Times.Once);
+        }
+
+        [Fact]
+        public async Task Delete_WhenTaskDoesNotExist_ReturnsNotFound()
+        {
+            // Arrange
+            var mockTaskService = new Mock<ITaskService>();
+
+            mockTaskService
+                .Setup(service => service.Delete(
+                    999,
+                    It.IsAny<CancellationToken>()))
+                .ReturnsAsync(false);
+
+            var controller = new TasksController(mockTaskService.Object)
+            {
+                ControllerContext = new ControllerContext
+                {
+                    HttpContext = new DefaultHttpContext()
+                }
+            };
+
+            // Act
+            var result = await controller.Delete(999);
+
+            // Assert
+            Assert.IsType<NotFoundResult>(result);
+        }
 
     }
 }
