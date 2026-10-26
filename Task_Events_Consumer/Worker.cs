@@ -1,3 +1,4 @@
+
 using Confluent.Kafka;
 using System.Text.Json;
 using Task_Events_Consumer.Events;
@@ -8,6 +9,11 @@ public class Worker : BackgroundService
 {
     private readonly IConfiguration _configuration;
     private readonly ILogger<Worker> _logger;
+
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true
+    };
 
     public Worker(
         IConfiguration configuration,
@@ -52,26 +58,62 @@ public class Worker : BackgroundService
                 try
                 {
                     var result = consumer.Consume(stoppingToken);
+                    using var document =
+                        JsonDocument.Parse(result.Message.Value);
 
-                    var taskEvent =
-                        JsonSerializer.Deserialize<TaskCreatedEvent>(
-                            result.Message.Value,
-                            new JsonSerializerOptions
-                            {
-                                PropertyNameCaseInsensitive = true
-                            });
+                    var root = document.RootElement;
 
-                    if (taskEvent is null)
+                    if (root.TryGetProperty("OldData", out _) ||
+                        root.TryGetProperty("oldData", out _))
                     {
-                        _logger.LogWarning(
-                            "Received an empty task event.");
-                        continue;
-                    }
+                        var taskEvent =
+                            JsonSerializer.Deserialize<TaskUpdatedEvent>(
+                                result.Message.Value,
+                                JsonOptions)
+                            ?? throw new JsonException(
+                                "TaskUpdatedEvent was empty.");
 
-                    _logger.LogInformation(
-                        "Received TaskCreated event. TaskId: {TaskId}, Title: {Title}",
-                        taskEvent.TaskId,
-                        taskEvent.Title);
+                        _logger.LogInformation(
+                            """
+                            Received TaskUpdated event.
+                            EventId: {EventId}
+                            TaskId: {TaskId}
+                            Old Title: {OldTitle}
+                            New Title: {NewTitle}
+                            Old IsCompleted: {OldIsCompleted}
+                            New IsCompleted: {NewIsCompleted}
+                            Old Description: {OldDescription}
+                            New Description: {NewDescription}
+                            """,
+                            taskEvent.EventId,
+                            taskEvent.NewData.Id,
+                            taskEvent.OldData.Title,
+                            taskEvent.NewData.Title,
+                            taskEvent.OldData.IsCompleted,
+                            taskEvent.NewData.IsCompleted,
+                            taskEvent.OldData.Description,
+                            taskEvent.NewData.Description);
+                    }
+                    else if (root.TryGetProperty("TaskId", out _) ||
+                             root.TryGetProperty("taskId", out _))
+                    {
+                        var taskEvent =
+                            JsonSerializer.Deserialize<TaskCreatedEvent>(
+                                result.Message.Value,
+                                JsonOptions)
+                            ?? throw new JsonException(
+                                "TaskCreatedEvent was empty.");
+
+                        _logger.LogInformation(
+                            "Received TaskCreated event. TaskId: {TaskId}, Title: {Title}",
+                            taskEvent.TaskId,
+                            taskEvent.Title);
+                    }
+                    else
+                    {
+                        throw new JsonException(
+                            "Unknown task event type.");
+                    }
 
                     consumer.Commit(result);
                 }
@@ -85,7 +127,7 @@ public class Worker : BackgroundService
                 {
                     _logger.LogError(
                         ex,
-                        "Failed to deserialize Kafka message.");
+                        "Failed to deserialize or identify Kafka event.");
                 }
             }
         }
