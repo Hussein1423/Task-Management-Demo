@@ -55,21 +55,53 @@ namespace Task_Management_API.Services
             return task;
         }
 
-        public async Task<bool> Update(int id, TaskItem task, CancellationToken cancellationToken)
+
+        public async Task<bool> Update(
+            int id,
+            TaskItem task,
+            CancellationToken cancellationToken)
+        {
+            var existing = await GetById(id, cancellationToken);
+
+            if (existing is null)
+                return false;
+
+            var oldData = new TaskItem
             {
-                var existing = await GetById(id, cancellationToken);
+                Id = existing.Id,
+                Title = existing.Title,
+                IsCompleted = existing.IsCompleted,
+                Description = existing.Description
+            };
 
-                if (existing is null)
-                    return false;
+            existing.Title = task.Title;
+            existing.IsCompleted = task.IsCompleted;
+            existing.Description = task.Description;
 
-                existing.Title = task.Title;
-                existing.IsCompleted = task.IsCompleted;
+            await _context.SaveChangesAsync(cancellationToken);
 
-                await _context.SaveChangesAsync(cancellationToken);
-                return true;
-            }
+            var taskUpdatedEvent = new TaskUpdatedEvent
+            {
+                OldData = oldData,
+                NewData = new TaskItem
+                {
+                    Id = existing.Id,
+                    Title = existing.Title,
+                    IsCompleted = existing.IsCompleted,
+                    Description = existing.Description
+                }
+            };
 
-            public async Task<bool> Delete(int id, CancellationToken cancellationToken)
+            await _kafkaProducer.PublishAsync(
+                existing.Id.ToString(),
+                taskUpdatedEvent,
+                cancellationToken);
+
+            return true;
+        }
+
+
+        public async Task<bool> Delete(int id, CancellationToken cancellationToken)
             {
                 var task = await GetById(id, cancellationToken);
 
